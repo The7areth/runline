@@ -1,0 +1,12 @@
+import {type Run} from './running';
+const val=(n:Element,key:string)=>n.getElementsByTagNameNS('*',key)[0]?.textContent||'';
+function hav(a:number,b:number,c:number,d:number){const r=Math.PI/180;const v=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 6371000*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v))}
+export function parseActivityXML(text:string,filename:string):Partial<Run>{
+const xml=new DOMParser().parseFromString(text,'text/xml');if(xml.querySelector('parsererror'))throw new Error('The activity XML could not be read.');
+const gpx=xml.getElementsByTagNameNS('*','trkpt'),tcx=xml.getElementsByTagNameNS('*','Trackpoint');const pts=Array.from(gpx.length?gpx:tcx);if(!pts.length)throw new Error('No recorded track points found. Use a GPX or TCX activity export.');
+const points=pts.map(p=>({time:Date.parse(val(p,gpx.length?'time':'Time')),lat:Number(gpx.length?p.getAttribute('lat'):val(p,'LatitudeDegrees')),lon:Number(gpx.length?p.getAttribute('lon'):val(p,'LongitudeDegrees')),distance:Number(val(p,'DistanceMeters')),hr:Number(val(p,'hr')||val(p,'HeartRateBpm').trim()),ele:Number(val(p,gpx.length?'ele':'AltitudeMeters'))}));
+let distance=0,gain=0;const splits:number[]=[];let boundary=1000,lastBoundaryTime=points[0].time;
+for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];const step=!gpx.length&&b.distance>0?Math.max(0,b.distance-a.distance):hav(a.lat,a.lon,b.lat,b.lon);const before=distance;distance+=step;if(b.ele>a.ele)gain+=b.ele-a.ele;while(distance>=boundary&&step>0){const t=a.time+(b.time-a.time)*(boundary-before)/step;const s=(t-lastBoundaryTime)/1000;if(s>0&&s<7200)splits.push(s);lastBoundaryTime=t;boundary+=1000}}
+const seconds=(points[points.length-1].time-points[0].time)/1000;if(!Number.isFinite(seconds)||seconds<=0||!Number.isFinite(distance)||distance<=0)throw new Error('Distance and timestamps are missing or invalid. Enter the summary manually.');
+const hrs=points.map(p=>p.hr).filter(x=>x>25&&x<240);return {name:filename.replace(/\.(gpx|tcx)$/i,''),date:new Date(points[0].time).toISOString().slice(0,10),distance:Math.round(distance/10)/100,seconds:Math.round(seconds),elevation:Math.round(gain),hr:hrs.length?Math.round(hrs.reduce((a,b)=>a+b,0)/hrs.length):null,splits,source:gpx.length?'gpx':'tcx',timeBasis:'elapsed',notes:'Calculated from file points. Time includes stops; heart rate is a sample average. Check the date (UTC) and distance before saving. GPS elevation is unfiltered.'};
+}
