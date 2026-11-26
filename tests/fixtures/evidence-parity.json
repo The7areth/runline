@@ -1,0 +1,229 @@
+{
+  "empty": {
+    "brief": {
+      "asOf": "2026-10-28",
+      "findings": [
+        {
+          "title": "Recent running volume",
+          "detail": "0.0 km across 0 runs in the seven days ending 2026-10-28. The prior seven days have no records, so no percentage comparison is justified. Missing imports can change this comparison.",
+          "kind": "observation",
+          "evidence": [
+            "Current: 0 records",
+            "Previous: 0 records"
+          ]
+        },
+        {
+          "title": "Recovery context is missing or stale",
+          "detail": "Record a recent check-in for sleep, fatigue and soreness. No readiness score is inferred from a run or an old check-in.",
+          "kind": "missing",
+          "evidence": [
+            "No check-in before this analysis date"
+          ]
+        }
+      ],
+      "coverage": {
+        "runs28": 0,
+        "km28": 0,
+        "longest28": 0,
+        "weekKm": 0,
+        "previousWeekKm": 0
+      },
+      "tools": [
+        "read_run_history",
+        "compare_recorded_periods",
+        "review_checkins"
+      ],
+      "mode": "deterministic-evidence-engine"
+    },
+    "answers": {
+      "summary": "Import a run first so the analysis can use your own measurements.",
+      "compare": "Import a run first so the analysis can use your own measurements.",
+      "pace": "Import a run first so the analysis can use your own measurements.",
+      "race": "Import a run first so the analysis can use your own measurements.",
+      "unknown": "Import a run first so the analysis can use your own measurements."
+    }
+  },
+  "sparse": {
+    "brief": {
+      "asOf": "2026-10-28",
+      "findings": [
+        {
+          "title": "Recent running volume",
+          "detail": "10.0 km across 1 runs in the seven days ending 2026-10-28. The prior seven days have no records, so no percentage comparison is justified. Missing imports can change this comparison.",
+          "kind": "observation",
+          "evidence": [
+            "Current: 1 records",
+            "Previous: 0 records"
+          ]
+        },
+        {
+          "title": "Build a comparison baseline",
+          "detail": "At least two earlier runs within 10% of this distance and with the same time basis are needed for a pace comparison.",
+          "kind": "missing",
+          "evidence": [
+            "0 comparable records available"
+          ]
+        },
+        {
+          "title": "Pacing across visible splits",
+          "detail": "First 3 full kilometres: 3:53/km; last 3: 5:50/km. 50.0% slower pace in the latter section. The middle kilometre is excluded for equal-length comparison. The splits do not cover the complete activity.",
+          "kind": "observation",
+          "evidence": [
+            "7 full-kilometre splits"
+          ]
+        },
+        {
+          "title": "Check unusual splits",
+          "detail": "Kilometre 3 differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.",
+          "kind": "context",
+          "evidence": [
+            "3: 1:40/km"
+          ]
+        },
+        {
+          "title": "Incomplete pacing evidence",
+          "detail": "Add the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.",
+          "kind": "missing",
+          "evidence": [
+            "7 splits for 10.00 km"
+          ]
+        },
+        {
+          "title": "Heart-rate evidence missing",
+          "detail": "No average heart rate is saved. Even with an average, zones and cardiac drift require additional measurements and a time series.",
+          "kind": "missing",
+          "evidence": [
+            "Heart-rate stream unavailable"
+          ]
+        },
+        {
+          "title": "Recovery context is missing or stale",
+          "detail": "Record a recent check-in for sleep, fatigue and soreness. No readiness score is inferred from a run or an old check-in.",
+          "kind": "missing",
+          "evidence": [
+            "Last check-in: 2026-10-25"
+          ]
+        }
+      ],
+      "coverage": {
+        "runs28": 1,
+        "km28": 10,
+        "longest28": 10,
+        "weekKm": 10,
+        "previousWeekKm": 0
+      },
+      "tools": [
+        "read_run_history",
+        "compare_recorded_periods",
+        "inspect_split_coverage",
+        "compare_similar_distances",
+        "review_checkins"
+      ],
+      "mode": "deterministic-evidence-engine"
+    },
+    "answers": {
+      "summary": "selected · 2026-10-28\n10.00 km in 50:00: 5:00/km average moving pace.\n\nRecent running volume\n10.0 km across 1 runs in the seven days ending 2026-10-28. The prior seven days have no records, so no percentage comparison is justified. Missing imports can change this comparison.\n\nBuild a comparison baseline\nAt least two earlier runs within 10% of this distance and with the same time basis are needed for a pace comparison.\n\nPacing across visible splits\nFirst 3 full kilometres: 3:53/km; last 3: 5:50/km. 50.0% slower pace in the latter section. The middle kilometre is excluded for equal-length comparison. The splits do not cover the complete activity.\n\nCheck unusual splits\nKilometre 3 differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.\n\nIncomplete pacing evidence\nAdd the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.\n\nHeart-rate evidence missing\nNo average heart rate is saved. Even with an average, zones and cardiac drift require additional measurements and a time series.\n\nRecovery context is missing or stale\nRecord a recent check-in for sleep, fatigue and soreness. No readiness score is inferred from a run or an old check-in.",
+      "compare": "selected · 2026-10-28\n10.00 km in 50:00: 5:00/km average moving pace.\n\nRecent running volume\n10.0 km across 1 runs in the seven days ending 2026-10-28. The prior seven days have no records, so no percentage comparison is justified. Missing imports can change this comparison.\n\nBuild a comparison baseline\nAt least two earlier runs within 10% of this distance and with the same time basis are needed for a pace comparison.",
+      "pace": "selected · 2026-10-28\n10.00 km in 50:00: 5:00/km average moving pace.\n\nBuild a comparison baseline\nAt least two earlier runs within 10% of this distance and with the same time basis are needed for a pace comparison.\n\nPacing across visible splits\nFirst 3 full kilometres: 3:53/km; last 3: 5:50/km. 50.0% slower pace in the latter section. The middle kilometre is excluded for equal-length comparison. The splits do not cover the complete activity.\n\nCheck unusual splits\nKilometre 3 differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.\n\nIncomplete pacing evidence\nAdd the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.",
+      "race": "The 28-day record ending 2026-10-28 contains 1 runs, 10.0 km and a longest run of 10.0 km. This does not establish complete training coverage or marathon readiness. Use Race lab with a recent representative race effort to explore formula-based equivalents. A training run is not automatically a race benchmark.",
+      "unknown": "I can currently analyze runs, compare recorded training, inspect splits, review recovery check-ins and explain race-estimate limitations. Try one of those questions. This is an evidence engine, not a general-purpose language model."
+    }
+  },
+  "boundaries": {
+    "brief": {
+      "asOf": "2026-10-28",
+      "findings": [
+        {
+          "title": "Recent running volume",
+          "detail": "20.0 km across 2 runs in the seven days ending 2026-10-28. The prior seven days contain 20.0 km: a 0% increase in recorded distance. Missing imports can change this comparison.",
+          "kind": "observation",
+          "evidence": [
+            "Current: 2 records",
+            "Previous: 2 records"
+          ]
+        },
+        {
+          "title": "Compared with similar distances",
+          "detail": "This run averages 5:00/km versus a 5:08/km median across 4 earlier runs within 10% of its distance. That is 8 sec/km faster. Routes, effort and conditions are not matched; this alone is not a fitness change.",
+          "kind": "context",
+          "evidence": [
+            "2026-10-22: 10.00 km",
+            "2026-10-21: 10.00 km",
+            "2026-10-15: 10.00 km",
+            "2026-10-01: 11.00 km"
+          ]
+        },
+        {
+          "title": "Pacing across visible splits",
+          "detail": "First 3 full kilometres: 3:53/km; last 3: 5:50/km. 50.0% slower pace in the latter section. The middle kilometre is excluded for equal-length comparison. The splits do not cover the complete activity.",
+          "kind": "observation",
+          "evidence": [
+            "7 full-kilometre splits"
+          ]
+        },
+        {
+          "title": "Check unusual splits",
+          "detail": "Kilometre 3 differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.",
+          "kind": "context",
+          "evidence": [
+            "3: 1:40/km"
+          ]
+        },
+        {
+          "title": "Incomplete pacing evidence",
+          "detail": "Add the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.",
+          "kind": "missing",
+          "evidence": [
+            "7 splits for 10.00 km"
+          ]
+        },
+        {
+          "title": "Heart-rate evidence missing",
+          "detail": "No average heart rate is saved. Even with an average, zones and cardiac drift require additional measurements and a time series.",
+          "kind": "missing",
+          "evidence": [
+            "Heart-rate stream unavailable"
+          ]
+        },
+        {
+          "title": "Recovery context",
+          "detail": "Latest check-in (2026-10-28): 7 hours sleep, fatigue 2/5 and soreness 1/5. These self-reports add context; they do not establish readiness or rule out injury.",
+          "kind": "context",
+          "evidence": [
+            "2026-10-28"
+          ]
+        },
+        {
+          "title": "Resting heart-rate baseline",
+          "detail": "64 bpm today versus a 60 bpm median from 3 earlier check-ins over 14 days. A difference is an observation, not a diagnosis or automatic training decision.",
+          "kind": "observation",
+          "evidence": [
+            "Difference: +4 bpm"
+          ]
+        }
+      ],
+      "coverage": {
+        "runs28": 6,
+        "km28": 61,
+        "longest28": 11,
+        "weekKm": 20,
+        "previousWeekKm": 20
+      },
+      "tools": [
+        "read_run_history",
+        "compare_recorded_periods",
+        "inspect_split_coverage",
+        "compare_similar_distances",
+        "review_checkins"
+      ],
+      "mode": "deterministic-evidence-engine"
+    },
+    "answers": {
+      "summary": "selected · 2026-10-28\n10.00 km in 50:00: 5:00/km average moving pace.\n\nRecent running volume\n20.0 km across 2 runs in the seven days ending 2026-10-28. The prior seven days contain 20.0 km: a 0% increase in recorded distance. Missing imports can change this comparison.\n\nCompared with similar distances\nThis run averages 5:00/km versus a 5:08/km median across 4 earlier runs within 10% of its distance. That is 8 sec/km faster. Routes, effort and conditions are not matched; this alone is not a fitness change.\n\nPacing across visible splits\nFirst 3 full kilometres: 3:53/km; last 3: 5:50/km. 50.0% slower pace in the latter section. The middle kilometre is excluded for equal-length comparison. The splits do not cover the complete activity.\n\nCheck unusual splits\nKilometre 3 differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.\n\nIncomplete pacing evidence\nAdd the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.\n\nHeart-rate evidence missing\nNo average heart rate is saved. Even with an average, zones and cardiac drift require additional measurements and a time series.\n\nRecovery context\nLatest check-in (2026-10-28): 7 hours sleep, fatigue 2/5 and soreness 1/5. These self-reports add context; they do not establish readiness or rule out injury.\n\nResting heart-rate baseline\n64 bpm today versus a 60 bpm median from 3 earlier check-ins over 14 days. A difference is an observation, not a diagnosis or automatic training decision.",
+      "compare": "selected · 2026-10-28\n10.00 km in 50:00: 5:00/km average moving pace.\n\nRecent running volume\n20.0 km across 2 runs in the seven days ending 2026-10-28. The prior seven days contain 20.0 km: a 0% increase in recorded distance. Missing imports can change this comparison.\n\nCompared with similar distances\nThis run averages 5:00/km versus a 5:08/km median across 4 earlier runs within 10% of its distance. That is 8 sec/km faster. Routes, effort and conditions are not matched; this alone is not a fitness change.\n\nResting heart-rate baseline\n64 bpm today versus a 60 bpm median from 3 earlier check-ins over 14 days. A difference is an observation, not a diagnosis or automatic training decision.",
+      "pace": "selected · 2026-10-28\n10.00 km in 50:00: 5:00/km average moving pace.\n\nCompared with similar distances\nThis run averages 5:00/km versus a 5:08/km median across 4 earlier runs within 10% of its distance. That is 8 sec/km faster. Routes, effort and conditions are not matched; this alone is not a fitness change.\n\nPacing across visible splits\nFirst 3 full kilometres: 3:53/km; last 3: 5:50/km. 50.0% slower pace in the latter section. The middle kilometre is excluded for equal-length comparison. The splits do not cover the complete activity.\n\nCheck unusual splits\nKilometre 3 differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.\n\nIncomplete pacing evidence\nAdd the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.",
+      "race": "The 28-day record ending 2026-10-28 contains 6 runs, 61.0 km and a longest run of 11.0 km. This does not establish complete training coverage or marathon readiness. Use Race lab with a recent representative race effort to explore formula-based equivalents. A training run is not automatically a race benchmark.",
+      "unknown": "I can currently analyze runs, compare recorded training, inspect splits, review recovery check-ins and explain race-estimate limitations. Try one of those questions. This is an evidence engine, not a general-purpose language model."
+    }
+  }
+}
