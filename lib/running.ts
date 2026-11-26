@@ -2,9 +2,27 @@ export type Run={id?:string;name:string;date:string;distance:number;seconds:numb
 export function duration(s:number){s=Math.round(s);return s>=3600?`${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`:`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
 export function pace(s:number){return Number.isFinite(s)&&s>0?duration(s):'—'}
 export function parseTime(s:string){const a=s.trim().split(':').map(Number);if(!a.length||a.length>3||a.some(x=>!Number.isFinite(x)||x<0)||a.slice(1).some(x=>x>=60))return NaN;return a.reduce((v,x)=>v*60+x,0)}
+export function secondsPerKm(run: Run) { return run.seconds / run.distance; }
+export function paceDirection(current: number, baseline: number) {
+  if (current === baseline) return 'equal';
+  return current > baseline ? 'slower' : 'faster';
+}
+/** Compare equally sized outer split groups, excluding any middle kilometres. */
+export function compareSplitGroups(splits: number[], groups: 2 | 3) {
+  const length = Math.floor(splits.length / groups);
+  const mean = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / length;
+  const first = mean(splits.slice(0, length));
+  const last = mean(splits.slice(-length));
+  const delta = last - first;
+  return { length, first, last, delta, percent: delta / first * 100, direction: paceDirection(last, first) } as const;
+}
 export function analyze(run:Run){
- const out=[`${run.distance.toFixed(2)} km in ${duration(run.seconds)}: ${pace(run.seconds/run.distance)}/km average ${run.timeBasis==='elapsed'?'elapsed':'moving'} pace.`];
- if(run.splits&&run.splits.length>=6){const n=Math.floor(run.splits.length/3),start=run.splits.slice(0,n),end=run.splits.slice(-n);const a=start.reduce((s,v)=>s+v,0)/n,b=end.reduce((s,v)=>s+v,0)/n;out.push(`First ${n} visible kilometres: ${pace(a)}/km. Last ${n}: ${pace(b)}/km. ${Math.abs(b-a).toFixed(0)} sec/km ${b>a?'slower':'faster'} at the end. This comparison does not establish the cause.`)}else out.push('Complete kilometre splits are not available. Pacing drift cannot be assessed from the average alone.');
+ const out=[`${run.distance.toFixed(2)} km in ${duration(run.seconds)}: ${pace(secondsPerKm(run))}/km average ${run.timeBasis==='elapsed'?'elapsed':'moving'} pace.`];
+ if (run.splits && run.splits.length >= 6) {
+   const { length, first, last, delta, direction } = compareSplitGroups(run.splits, 3);
+   const change = direction === 'equal' ? 'The same pace' : Math.abs(delta).toFixed(0) + ' sec/km ' + direction;
+   out.push(`First ${length} visible kilometres: ${pace(first)}/km. Last ${length}: ${pace(last)}/km. ${change} at the end. This comparison does not establish the cause.`);
+ } else out.push('Complete kilometre splits are not available. Pacing drift cannot be assessed from the average alone.');
  if(run.hr)out.push(`Average heart rate: ${run.hr} bpm. Without your measured zones and the heart-rate stream, intensity zones and cardiac drift remain unknown.`);else out.push('No heart-rate measurement supplied. Heart-rate zones and cardiac drift are unavailable.');
  if(run.rpe)out.push(`Reported effort: ${run.rpe}/10. Use this alongside sleep, soreness and your recent training before deciding on another demanding session.`);
  return out;

@@ -1,30 +1,164 @@
-import {type Run,analyze,pace,duration} from './running.ts';
-export type Checkin={date:string;sleep:number|null;fatigue:number;soreness:number;restingHR:number|null;notes?:string};
-export type Finding={title:string;detail:string;kind:'observation'|'context'|'missing';evidence:string[]};
-const median=(xs:number[])=>{const s=[...xs].sort((a,b)=>a-b);return s.length%2?s[Math.floor(s.length/2)]:(s[s.length/2-1]+s[s.length/2])/2};
-const day=(s:string)=>Date.parse(s+'T12:00:00Z');
-export function trainingBrief(runs:Run[],selected:Run|undefined,checkins:Checkin[]=[],asOf?:string){
- const date=asOf||selected?.date||new Date().toISOString().slice(0,10);const now=day(date);const history=runs.filter(r=>day(r.date)<=now);const period=(a:number,b:number)=>history.filter(r=>now-day(r.date)>=a*86400000&&now-day(r.date)<b*86400000);const week=period(0,7),prev=period(7,14),month=period(0,28);const sum=(xs:Run[])=>xs.reduce((s,r)=>s+r.distance,0);const wk=sum(week),pk=sum(prev);const findings:Finding[]=[];
- findings.push({title:'Recent running volume',detail:`${wk.toFixed(1)} km across ${week.length} runs in the seven days ending ${date}. ${pk?`The prior seven days contain ${pk.toFixed(1)} km: a ${Math.abs((wk-pk)/pk*100).toFixed(0)}% ${wk>=pk?'increase':'decrease'} in recorded distance.`:'The prior seven days have no records, so no percentage comparison is justified.'} Missing imports can change this comparison.`,kind:'observation',evidence:[`Current: ${week.length} records`,`Previous: ${prev.length} records`]});
- if(selected){
- const candidates=history.filter(r=>r.id!==selected.id&&r.date<selected.date&&selected.distance>0&&Math.abs(r.distance-selected.distance)/selected.distance<=.1&&(r.timeBasis||'moving')===(selected.timeBasis||'moving')).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20);
- if(candidates.length>=2){const prior=median(candidates.map(r=>r.seconds/r.distance));const delta=selected.seconds/selected.distance-prior;findings.push({title:'Compared with similar distances',detail:`This run averages ${pace(selected.seconds/selected.distance)}/km versus a ${pace(prior)}/km median across ${candidates.length} earlier runs within 10% of its distance. That is ${Math.abs(delta).toFixed(0)} sec/km ${delta>0?'slower':'faster'}. Routes, effort and conditions are not matched; this alone is not a fitness change.`,kind:'context',evidence:candidates.map(r=>`${r.date}: ${r.distance.toFixed(2)} km`)})}else findings.push({title:'Build a comparison baseline',detail:'At least two earlier runs within 10% of this distance and with the same time basis are needed for a pace comparison.',kind:'missing',evidence:[`${candidates.length} comparable records available`]});
- const splits=selected.splits||[];const complete=splits.length>=Math.floor(selected.distance)&&Math.abs(selected.distance-splits.length)<1;
- if(splits.length>=6){const n=Math.floor(splits.length/2),first=splits.slice(0,n).reduce((a,b)=>a+b,0)/n,last=splits.slice(-n).reduce((a,b)=>a+b,0)/n;findings.push({title:complete?'Pacing across the run':'Pacing across visible splits',detail:`First ${n} full kilometres: ${pace(first)}/km; last ${n}: ${pace(last)}/km. ${Math.abs((last-first)/first*100).toFixed(1)}% ${last>first?'slower':'faster'} pace in the latter section.${splits.length%2?' The middle kilometre is excluded for equal-length comparison.':''} ${complete?'':'The splits do not cover the complete activity.'}`,kind:'observation',evidence:[`${splits.length} full-kilometre splits`]});
- const m=median(splits);const unusual=splits.map((s,i)=>({s,i})).filter(x=>x.s<m*.7||x.s>m*1.4);if(unusual.length)findings.push({title:'Check unusual splits',detail:`Kilometre${unusual.length>1?'s':''} ${unusual.map(x=>x.i+1).join(', ')} differ substantially from the median split. Check pauses, intervals, GPS or OCR before drawing conclusions. These are heuristic review flags.`,kind:'context',evidence:unusual.map(x=>`${x.i+1}: ${pace(x.s)}/km`)})}
- if(!complete)findings.push({title:'Incomplete pacing evidence',detail:'Add the missing full-kilometre splits or an activity file to evaluate the entire run. Average pace does not replace the missing splits.',kind:'missing',evidence:[`${splits.length} splits for ${selected.distance.toFixed(2)} km`]});
- if(!selected.hr)findings.push({title:'Heart-rate evidence missing',detail:'No average heart rate is saved. Even with an average, zones and cardiac drift require additional measurements and a time series.',kind:'missing',evidence:['Heart-rate stream unavailable']});
- }
- const cs=checkins.filter(c=>day(c.date)<=now).sort((a,b)=>b.date.localeCompare(a.date));const c=cs[0];if(c&&now-day(c.date)<3*86400000){const baseline=cs.filter(x=>x.date<c.date&&day(c.date)-day(x.date)<=14*86400000);findings.push({title:'Recovery context',detail:`Latest check-in (${c.date}): ${c.sleep==null?'sleep unrecorded':`${c.sleep} hours sleep`}, fatigue ${c.fatigue}/5 and soreness ${c.soreness}/5. ${c.fatigue>=4||c.soreness>=4?'You reported high fatigue or soreness. Review how you feel before deciding on a demanding session.':'These self-reports add context; they do not establish readiness or rule out injury.'}`,kind:'context',evidence:[c.date]});const hrs=baseline.map(x=>x.restingHR).filter((x):x is number=>typeof x==='number');if(c.restingHR&&hrs.length>=3){const m=median(hrs);findings.push({title:'Resting heart-rate baseline',detail:`${c.restingHR} bpm today versus a ${m.toFixed(0)} bpm median from ${hrs.length} earlier check-ins over 14 days. A difference is an observation, not a diagnosis or automatic training decision.`,kind:'observation',evidence:[`Difference: ${(c.restingHR-m)>=0?'+':''}${(c.restingHR-m).toFixed(0)} bpm`]})}}else findings.push({title:'Recovery context is missing or stale',detail:'Record a recent check-in for sleep, fatigue and soreness. No readiness score is inferred from a run or an old check-in.',kind:'missing',evidence:[c?`Last check-in: ${c.date}`:'No check-in before this analysis date']});
- const longest=month.length?Math.max(...month.map(r=>r.distance)):0;return {asOf:date,findings,coverage:{runs28:month.length,km28:sum(month),longest28:longest,weekKm:wk,previousWeekKm:pk},tools:['read_run_history','compare_recorded_periods',...(selected?['inspect_split_coverage','compare_similar_distances']:[]),'review_checkins'],mode:'deterministic-evidence-engine'};
+import { analyze, type Run, secondsPerKm, paceDirection, compareSplitGroups } from './running.ts';
+import { renderFinding } from './insights/render.ts';
+import type { Checkin, Evidence, EvidenceFinding, Measure, SourceRef, Unit, Window, FindingId } from './insights/evidence.ts';
+export type { Checkin, Evidence, EvidenceFinding } from './insights/evidence.ts';
+export type { Finding } from './insights/render.ts';
+
+const DAY = 86400000;
+const timestamp = (date: string) => Date.parse(date + 'T12:00:00Z');
+const offset = (date: string, days: number) => new Date(timestamp(date) + days * DAY).toISOString().slice(0, 10);
+const window = (start: string | null, end: string): Window => ({ start, end });
+const measure = <U extends Unit>(value: number, unit: U): Measure<U> => ({ value, unit });
+const count = (value: number) => measure(value, 'count');
+const km = (value: number) => measure(value, 'km');
+const perKm = (value: number) => measure(value, 's/km');
+const bpm = (value: number) => measure(value, 'bpm');
+const pct = (value: number) => measure(value, '%');
+const sumKm = (runs: Run[]) => runs.reduce((total, run) => total + run.distance, 0);
+const source = (kind: SourceRef['kind'], record: Run | Checkin): SourceRef =>
+  ({ kind, id: record.id ?? null, date: record.date });
+const runRef = (r: Run) => source('run', r);
+const checkRef = (c: Checkin) => source('checkin', c);
+
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
-export function answerTraining(question:string,runs:Run[],selected:Run|undefined,checkins:Checkin[]){
- if(!selected)return 'Import a run first so the analysis can use your own measurements.';
- const q=question.toLowerCase();const b=trainingBrief(runs,selected,checkins,/recover|rest|sleep|tomorrow|fatigue|sore/.test(q)?new Date().toISOString().slice(0,10):undefined);let f=b.findings;
- if(/recover|rest|sleep|tomorrow|fatigue|sore/.test(q))f=f.filter(x=>/recovery|resting/i.test(x.title));
- else if(/compar|trend|week|volume|progress/.test(q))f=f.filter(x=>/volume|compar|baseline/i.test(x.title));
- else if(/split|pac|slow|fast/.test(q))f=f.filter(x=>/pac|split|compar/i.test(x.title));
- else if(/race|marathon|predict|finish/.test(q))return `The 28-day record ending ${b.asOf} contains ${b.coverage.runs28} runs, ${b.coverage.km28.toFixed(1)} km and a longest run of ${b.coverage.longest28.toFixed(1)} km. This does not establish complete training coverage or marathon readiness. Use Race lab with a recent representative race effort to explore formula-based equivalents. A training run is not automatically a race benchmark.`;
- else if(!/analy|run|train|summar|evidence|insight/.test(q))return 'I can currently analyze runs, compare recorded training, inspect splits, review recovery check-ins and explain race-estimate limitations. Try one of those questions. This is an evidence engine, not a general-purpose language model.';
- return `${selected.name} · ${selected.date}\n${analyze(selected)[0]}\n\n`+f.map(x=>`${x.title}\n${x.detail}`).join('\n\n');
+
+function activityFindings(selected: Run, history: Run[], truncated: boolean): EvidenceFinding[] {
+  const findings: EvidenceFinding[] = [];
+  const activity = { window: window(selected.date, selected.date), sources: [runRef(selected)], comparator: null };
+  const candidates = history.filter(run =>
+    run.id !== selected.id && run.date < selected.date && selected.distance > 0 &&
+    Math.abs(run.distance - selected.distance) / selected.distance <= 0.1 &&
+    (run.timeBasis || 'moving') === (selected.timeBasis || 'moving'),
+  ).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
+  const comparison = { ...activity, sources: [...activity.sources, ...candidates.map(runRef)],
+    comparator: { basis: 'similarRuns' as const, window: window(null, offset(selected.date, -1)) } };
+  if (candidates.length >= 2 && !truncated) {
+    const prior = median(candidates.map(secondsPerKm));
+    const current = secondsPerKm(selected);
+    const direction = paceDirection(current, prior);
+    findings.push({ ...comparison, id: 'comparablePace', kind: 'context', direction,
+      metrics: { current: perKm(current), median: perKm(prior), delta: perKm(current - prior),
+        candidates: candidates.map(r => ({ date: r.date, distance: km(r.distance) })) },
+      allowedInterpretations: [direction], requiredCaveats: ['unmatchedConditions'] });
+  } else {
+    findings.push({ ...comparison, id: 'insufficientComparables', kind: 'missing', direction: 'unavailable',
+      metrics: { count: count(candidates.length) }, allowedInterpretations: ['missing'],
+      requiredCaveats: truncated ? ['truncatedHistory'] : ['needComparables'] });
+  }
+
+  const splits = selected.splits || [];
+  const complete = splits.length >= Math.floor(selected.distance) && Math.abs(selected.distance - splits.length) < 1;
+  if (splits.length >= 6) {
+    const { length: n, first, last, percent, direction } = compareSplitGroups(splits, 2);
+    findings.push({ ...activity, id: 'splitPace', kind: 'observation', direction,
+      comparator: { basis: 'firstHalf', window: activity.window },
+      metrics: { count: count(splits.length), halfCount: count(n), first: perKm(first), last: perKm(last),
+        change: pct(percent), complete },
+      allowedInterpretations: [direction], requiredCaveats: [
+        ...(splits.length % 2 ? ['omittedMiddle' as const] : []), ...(complete ? [] : ['partialSplits' as const])] });
+    const middle = median(splits);
+    const flagged = splits.flatMap((s, i) => s < middle * 0.7 || s > middle * 1.4
+      ? [{ kilometre: km(i + 1), pace: perKm(s) }] : []);
+    if (flagged.length) findings.push({ ...activity, id: 'unusualSplits', kind: 'context', direction: 'unavailable',
+      comparator: { basis: 'splitMedian', window: activity.window }, metrics: { flagged },
+      allowedInterpretations: ['review'], requiredCaveats: ['heuristic'] });
+  }
+  if (!complete) findings.push({ ...activity, id: 'incompleteSplits', kind: 'missing', direction: 'unavailable',
+    metrics: { count: count(splits.length), distance: km(selected.distance) },
+    allowedInterpretations: ['missing'], requiredCaveats: ['partialSplits'] });
+  if (!selected.hr) findings.push({ ...activity, id: 'missingHeartRate', kind: 'missing', direction: 'unavailable',
+    metrics: { average: null }, allowedInterpretations: ['missing'], requiredCaveats: ['noStream'] });
+  return findings;
+}
+
+function recoveryFindings(checkins: Checkin[], asOf: string, truncated: boolean): EvidenceFinding[] {
+  const history = checkins.filter(c => c.date <= asOf).sort((a, b) => b.date.localeCompare(a.date));
+  const latest = history[0];
+  const recent = window(offset(asOf, -2), asOf);
+  if (!latest || latest.date < recent.start! || truncated) {
+    return [{ id: 'missingRecovery', kind: 'missing', direction: 'unavailable', comparator: null,
+      window: recent, sources: latest ? [checkRef(latest)] : [], metrics: { latest: latest?.date ?? null },
+      allowedInterpretations: ['missing'], requiredCaveats: [truncated ? 'truncatedHistory' : 'staleOrAbsent'] }];
+  }
+  const high = latest.fatigue >= 4 || latest.soreness >= 4;
+  const findings: EvidenceFinding[] = [{ id: 'recovery', kind: 'context', direction: 'unavailable',
+    comparator: null, window: recent, sources: [checkRef(latest)], metrics: { date: latest.date,
+      sleep: latest.sleep == null ? null : measure(latest.sleep, 'hours'),
+      fatigue: measure(latest.fatigue, 'score/5'), soreness: measure(latest.soreness, 'score/5') },
+    allowedInterpretations: [high ? 'highSelfReport' : 'recorded'], requiredCaveats: [high ? 'reviewSelfReport' : 'selfReport'] }];
+  const start = offset(latest.date, -14);
+  const prior = history.filter((c): c is Checkin & { restingHR: number } =>
+    c.date < latest.date && c.date >= start && typeof c.restingHR === 'number');
+  if (latest.restingHR && prior.length >= 3) {
+    const base = median(prior.map(c => c.restingHR));
+    const delta = latest.restingHR - base;
+    const direction = delta === 0 ? 'equal' : delta > 0 ? 'higher' : 'lower';
+    findings.push({ id: 'restingHeartRate', kind: 'observation', direction,
+      window: window(latest.date, latest.date), comparator: { basis: 'priorCheckins', window: window(start, offset(latest.date, -1)) },
+      sources: [checkRef(latest), ...prior.map(checkRef)], metrics: {
+        current: bpm(latest.restingHR), median: bpm(base), delta: bpm(delta), count: count(prior.length) },
+      allowedInterpretations: [direction], requiredCaveats: ['noDiagnosis'] });
+  }
+  return findings;
+}
+
+export function buildEvidence(runs: Run[], selected: Run | undefined, checkins: Checkin[],
+  asOf: string, inputCoverage: Evidence['inputCoverage'] = 'complete'): Evidence {
+  const history = runs.filter(run => run.date <= asOf);
+  const currentWindow = window(offset(asOf, -6), asOf);
+  const previousWindow = window(offset(asOf, -13), offset(asOf, -7));
+  const within = (range: Window) => history.filter(run => run.date >= range.start! && run.date <= range.end);
+  const week = within(currentWindow);
+  const previous = within(previousWindow);
+  const month = within(window(offset(asOf, -27), asOf));
+  const current = sumKm(week);
+  const prior = sumKm(previous);
+  const truncated = inputCoverage === 'truncated';
+  const change = prior && !truncated ? pct((current - prior) / prior * 100) : null;
+  const direction = !change ? 'unavailable' : current === prior ? 'equal' : current > prior ? 'higher' : 'lower';
+  const findings: EvidenceFinding[] = [{ id: 'volume', kind: 'observation', direction, window: currentWindow,
+    comparator: { basis: 'previousWeek', window: previousWindow }, sources: [...week, ...previous].map(runRef),
+    metrics: { current: km(current), previous: km(prior), currentCount: count(week.length),
+      previousCount: count(previous.length), change }, allowedInterpretations: [direction === 'unavailable' ? 'recorded' : direction],
+    requiredCaveats: [...(truncated ? ['truncatedHistory' as const] : prior ? [] : ['noPriorVolume' as const]), 'missingImports'] }];
+  if (selected) findings.push(...activityFindings(selected, history, truncated));
+  findings.push(...recoveryFindings(checkins, asOf, truncated));
+  return { version: 1, asOf, inputCoverage, findings, coverage: { runs28: month.length, km28: sumKm(month),
+    longest28: month.reduce((max, run) => Math.max(max, run.distance), 0), weekKm: current, previousWeekKm: prior } };
+}
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+export function trainingBrief(runs: Run[], selected: Run | undefined, checkins: Checkin[] = [], asOf?: string) {
+  const evidence = buildEvidence(runs, selected, checkins, asOf || selected?.date || today());
+  return { asOf: evidence.asOf, findings: evidence.findings.map(renderFinding), coverage: evidence.coverage,
+    tools: ['read_run_history', 'compare_recorded_periods', ...(selected ? ['inspect_split_coverage', 'compare_similar_distances'] : []), 'review_checkins'],
+    mode: 'deterministic-evidence-engine' };
+}
+
+const recoveryIds: FindingId[] = ['recovery', 'missingRecovery', 'restingHeartRate'];
+const comparisonIds: FindingId[] = ['volume', 'comparablePace', 'insufficientComparables', 'restingHeartRate'];
+const pacingIds: FindingId[] = ['comparablePace', 'insufficientComparables', 'splitPace', 'unusualSplits', 'incompleteSplits'];
+
+export function answerTraining(question: string, runs: Run[], selected: Run | undefined, checkins: Checkin[]) {
+  if (!selected) return 'Import a run first so the analysis can use your own measurements.';
+  const q = question.toLowerCase();
+  const recovery = /recover|rest|sleep|tomorrow|fatigue|sore/.test(q);
+  const evidence = buildEvidence(runs, selected, checkins, recovery ? today() : selected.date);
+  let ids: FindingId[] | undefined;
+  if (recovery) ids = recoveryIds;
+  else if (/compar|trend|week|volume|progress/.test(q)) ids = comparisonIds;
+  else if (/split|pac|slow|fast/.test(q)) ids = pacingIds;
+  else if (/race|marathon|predict|finish/.test(q)) {
+    const c = evidence.coverage;
+    return `The 28-day record ending ${evidence.asOf} contains ${c.runs28} runs, ${c.km28.toFixed(1)} km and a longest run of ${c.longest28.toFixed(1)} km. This does not establish complete training coverage or marathon readiness. Use Race lab with a recent representative race effort to explore formula-based equivalents. A training run is not automatically a race benchmark.`;
+  } else if (!/analy|run|train|summar|evidence|insight/.test(q)) {
+    return 'I can currently analyze runs, compare recorded training, inspect splits, review recovery check-ins and explain race-estimate limitations. Try one of those questions. This is an evidence engine, not a general-purpose language model.';
+  }
+  const rendered = evidence.findings.filter(f => !ids || ids.includes(f.id)).map(renderFinding);
+  return `${selected.name} · ${selected.date}\n${analyze(selected)[0]}\n\n` + rendered.map(f => f.title + '\n' + f.detail).join('\n\n');
 }
