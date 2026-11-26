@@ -2,7 +2,7 @@ import { pace } from '../running.ts';
 import type { CaveatId, EvidenceFinding } from './evidence.ts';
 
 export type Finding = { title: string; detail: string; kind: EvidenceFinding['kind']; evidence: string[] };
-const caveats: Record<CaveatId, string> = {
+export const caveats: Record<CaveatId, string> = {
   missingImports: 'Missing imports can change this comparison.',
   noPriorVolume: 'The prior seven days have no records, so no percentage comparison is justified.',
   unmatchedConditions: 'Routes, effort and conditions are not matched; this alone is not a fitness change.',

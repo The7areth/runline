@@ -200,3 +200,52 @@ test('Intervals distinguishes other upstream failures and unexpected payloads', 
   upstream.mock.mockImplementation(async () => Response.json({}));
   assert.deepEqual(await json(await intervals.POST(post(query)), 400), { error: 'Unexpected Intervals.icu response.' });
 });
+
+const insights = await import('../app/api/insights/route.ts');
+test('insights conceal foreign run IDs and reject invalid or oversized bodies before provider access', async t => {
+  const { id } = await json<{ id: string }>(await save('run', run));
+  session.userId = bob;
+  const fetchMock = t.mock.method(globalThis, 'fetch', () => { throw new Error('unexpected model call'); });
+  const request = { selectedRunId: id, question: 'Compare my training' };
+  for (const selectedRunId of [id, 'absent']) {
+    const response = await insights.POST(post({ ...request, selectedRunId }));
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.deepEqual(await json(response, 404), { error: 'Run not found.' });
+  }
+  for (const body of [{ ...request, owner: alice }, { ...request, question: ' ' }, { ...request, question: 'x'.repeat(8200) }]) {
+    assert.equal((await insights.POST(post(body))).status, 400);
+  }
+  assert.equal((await insights.POST(post(request, { origin: 'https://elsewhere.test' }))).status, 400);
+  session.userId = null;
+  assert.equal((await insights.POST(post(request))).status, 401);
+  assert.equal(fetchMock.mock.callCount(), 0);
+});
+
+test('historical Ask uses activity dates, detects capped history and sends a native Ollama plan schema', async t => {
+  const { id } = await json<{ id: string }>(await save('run', run));
+  await database.prepare(`WITH RECURSIVE seq(n) AS (VALUES(0) UNION ALL SELECT n+1 FROM seq WHERE n<2000)
+    INSERT INTO records SELECT 'new-'||n,'alice','run',json_set(?,'$.date','2026-11-01'),'later' FROM seq`).bind(JSON.stringify(run)).run();
+  const events: object[] = [];
+  t.mock.method(console, 'info', (line: string) => events.push(JSON.parse(line)));
+  t.mock.method(globalThis, 'fetch', async (url: URL, init: RequestInit) => {
+    assert.equal(url.href, 'http://127.0.0.1:11434/api/chat');
+    const body = JSON.parse(String(init.body));
+    assert.equal(body.model, 'qwen2.5:7b');
+    assert.equal(body.options.temperature, 0);
+    assert.equal(body.stream, false);
+    assert.equal(body.format.additionalProperties, false);
+    assert.equal(body.format.properties.findings.items.additionalProperties, false);
+    const payload = JSON.parse(body.messages[1].content);
+    const pick = payload.choices[0];
+    return Response.json({ done: true, message: { content: JSON.stringify({ intent: payload.intent,
+      findings: [{ findingId: pick.findingId, interpretation: pick.interpretation }], takeaway: pick.sentence }) } });
+  });
+  const ask = () => insights.POST(post({ question: 'Weekly volume?', selectedRunId: id }));
+  const historical = await json<{ mode: string; evidence: { detail: string }[] }>(await ask());
+  assert.equal(historical.mode, 'ai');
+  assert.match(historical.evidence[0].detail, /4\.0 km across 1 runs/);
+  await database.prepare("UPDATE records SET body=json_set(body,'$.date',?) WHERE id LIKE 'new-%'").bind(run.date).run();
+  const capped = await json<{ caveats: string[] }>(await ask());
+  assert.ok(capped.caveats.includes('The available history is incomplete.'));
+  assert.equal(events.length, 2);
+});
